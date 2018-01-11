@@ -8,9 +8,6 @@
     "runtime-version": "1.6",
     "sdk": "org.freedesktop.Sdk",
 
-    "rename-desktop-file": "lbry.desktop",
-    "rename-icon": "lbry",
-
     "command": "lbry-app",
 
     "finish-args": [
@@ -110,20 +107,30 @@
             "build-options" : {
                 "env": {
                     "electron_config_cache": "/run/build/lbry-app/electron-cache",
-                    "YARN_CACHE_FOLDER": "/run/build/lbry-app/yarn-cache"
+                    "MODULE_CACHE_DIRECTORY": "/run/build/lbry-app/yarn-cache",
+                    "DEBUG": "true"
                 }
             },
             "buildsystem": "simple",
             "build-commands": [
-                "yarn --offline config set yarn-offline-mirror /run/build/lbry-app/yarn-mirror",
-                "yarn --offline config set yarn-offline-mirror-pruning false",
-                "yarn --offline cache clean",
-                "yarn --offline install --cwd /run/build/lbry-app/main",
+                "yarn --offline --cwd /run/build/lbry-app/main config set yarn-offline-mirror /run/build/lbry-app/yarn-mirror",
+                "yarn --offline --cwd /run/build/lbry-app/main config set yarn-offline-mirror-pruning false",
+                "yarn --offline --cwd /run/build/lbry-app/main cache clean",
+                "yarn --offline --cwd /run/build/lbry-app/main install --verbose",
+                "electron-webpack",
+                "yarn --offline extract-langs",
+                "electron-builder build",
                 "mkdir -p /app/main /app/bin",
-                "cp -ra * /app/main/",
-                "sed -i 's|Exec=.*|Exec=lbry-app %U|' /app/share/applications/lbry.desktop",
-                "install lbry-app.sh /app/bin/lbry-app",
-                "install -Dm644 io.lbry.lbry-app.appdata.xml /app/share/appdata/io.lbry.lbry-app.appdata.xml"
+                "cp -ra main/* /app/main/",
+                "install run.sh /app/bin/lbry-app",
+                "sed -i 's|Exec=.*|Exec=lbry-app %U|' io.lbry.lbry-app.desktop",
+                "install -Dm644 io.lbry.lbry-app.desktop /app/share/application/io.lbry.lbry-app.desktop",
+                "install -Dm644 io.lbry.lbry-app.appdata.xml /app/share/appdata/io.lbry.lbry-app.appdata.xml",
+                "install -Dm644 main/build/icons/32x32.png /app/share/icons/hicolor/32x32/app/io.lbry.lbry-app.png",
+                "install -Dm644 main/build/icons/48x48.png /app/share/icons/hicolor/48x48/app/io.lbry.lbry-app.png",
+                "install -Dm644 main/build/icons/96x96.png /app/share/icons/hicolor/96x96/app/io.lbry.lbry-app.png",
+                "install -Dm644 main/build/icons/128x128.png /app/share/icons/hicolor/128x128/app/io.lbry.lbry-app.png",
+                "install -Dm644 main/build/icons/256x256.png /app/share/icons/hicolor/256x256/app/io.lbry.lbry-app.png"
             ],
             "sources": [
                 {
@@ -137,8 +144,12 @@
                     "type": "script",
                     "dest-filename": "run.sh",
                     "commands": [
-                        "exec /app/main/lbry-app \"$@\""
+                        "exec /app/main/lbry \"$@\""
                     ]
+                },
+                {
+                    "type": "file",
+                    "path": "io.lbry.lbry-app.desktop"
                 },
                 {
                     "type": "file",
