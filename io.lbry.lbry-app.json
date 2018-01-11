@@ -29,7 +29,51 @@
         "--talk-name=org.freedesktop.Notifications"
     ],
     
+    "build-options" : {
+        "cflags": "-O2 -g",
+        "cxxflags": "-O2 -g",
+        "env": {
+            "NPM_CONFIG_LOGLEVEL": "info"
+        }
+    },
+
     "modules": [
+        {
+            "name": "nodejs",
+            "cleanup": [
+                "/include",
+                "/share",
+                "/app/lib/node_modules/npm/changelogs",
+                "/app/lib/node_modules/npm/doc",
+                "/app/lib/node_modules/npm/html",
+                "/app/lib/node_modules/npm/man",
+                "/app/lib/node_modules/npm/scripts"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://nodejs.org/dist/v8.9.2/node-v8.9.2.tar.gz",
+                    "sha256": "8038fa61ac4562786fcc6d3229f3caa07a864b94bd5922fe75942a38ea1c3a3b"
+                }
+            ]
+        },
+        {
+            "name": "yarn",
+            "buildsystem": "simple",
+            "build-commands": [
+                "mkdir -p /app/share/yarn",
+                "cp -a * /app/share/yarn/",
+                "ln -s /app/share/yarn/bin/yarn /app/bin/yarn",
+                "ln -s /app/share/yarn/bin/yarnpkg /app/bin/yarnpkg"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/yarnpkg/yarn/releases/download/v1.3.2/yarn-v1.3.2.tar.gz",
+                    "sha256": "6cfe82e530ef0837212f13e45c1565ba53f5199eec2527b85ecbcd88bf26821d"
+                }
+            ]
+        },
         {
             "name": "libsecret",
             "config-opts": [
@@ -63,33 +107,37 @@
         },
         {
             "name": "lbry-app",
+            "build-options" : {
+                "env": {
+                    "electron_config_cache": "/run/build/lbry-app/electron-cache",
+                    "YARN_CACHE_FOLDER": "/run/build/lbry-app/yarn-cache"
+                }
+            },
             "buildsystem": "simple",
             "build-commands": [
-                "ar x LBRY_*.deb",
-                "rm -f LBRY_*.deb",
-                "tar xf data.tar.xz",
-                "rm -f control.tar.gz data.tar.xz debian-binary",
-                "cp -r usr/* /app",
-                "mkdir -p lbry-app",
-                "cp -r opt/LBRY /app/lbry-app",
-                "chmod -R a-s,go+rX,go-w /app/lbry-app",
-                "mv /app/lbry-app/lbry /app/lbry-app/lbry-app",
+                "yarn --offline config set yarn-offline-mirror /run/build/lbry-app/yarn-mirror",
+                "yarn --offline config set yarn-offline-mirror-pruning false",
+                "yarn --offline cache clean",
+                "yarn --offline install --cwd /run/build/lbry-app/main",
+                "mkdir -p /app/main /app/bin",
+                "cp -ra * /app/main/",
                 "sed -i 's|Exec=.*|Exec=lbry-app %U|' /app/share/applications/lbry.desktop",
                 "install lbry-app.sh /app/bin/lbry-app",
                 "install -Dm644 io.lbry.lbry-app.appdata.xml /app/share/appdata/io.lbry.lbry-app.appdata.xml"
             ],
             "sources": [
                 {
-                    "type": "file",
-                    "only-arches": ["x86_64"],
-                    "url": "https://github.com/lbryio/lbry-app/releases/download/v0.19.4/LBRY_0.19.4_amd64.deb",
-                    "sha256": "e3acdacf6dbb8602ecc24e0ce7c553c886539f030272fbaf5d2e7959ad18ef4c"
+                    "type": "git",
+                    "url": "https://github.com/lbryio/lbry-app.git",
+                    "tag": "v0.19.4",
+                    "dest": "main"
                 },
+                "generated-sources.json",
                 {
                     "type": "script",
-                    "dest-filename": "lbry-app.sh",
+                    "dest-filename": "run.sh",
                     "commands": [
-                        "exec /app/lbry-app/lbry-app \"$@\""
+                        "exec /app/main/lbry-app \"$@\""
                     ]
                 },
                 {
